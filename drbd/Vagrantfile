@@ -1,0 +1,64 @@
+# vi: ft=ruby
+
+$provision = <<-SCRIPT
+rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+yum -y install drbd84-utils kmod-drbd84
+
+parted -s -a optimal /dev/sdb mklabel msdos
+parted -s -a optimal /dev/sdb -- mkpart primary xfs 1 -1
+
+# https://docs.linbit.com/docs/users-guide-8.4/#s-configure-resource
+cat << EOF > /etc/drbd.d/global_common.conf
+global {
+  usage-count no;
+}
+common {
+  net {
+    protocol C;
+  }
+}
+EOF
+cat << EOF > /etc/drbd.d/r0.res
+resource r0 {
+  device /dev/drbd0;
+  disk /dev/sdb1;
+  meta-disk internal;
+
+  on node1 {
+    address 192.168.30.2:7789;
+  }
+  on node2 {
+    address 192.168.30.3:7789;
+  }
+}
+EOF
+
+drbdadm create-md r0
+drbdadm up r0
+
+mkdir /mnt/drbd0
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+
+  config.vm.define "node1" do |c|
+    c.vm.hostname = "node1"
+    c.vm.provision "shell", inline: $provision
+    c.vm.network "private_network", ip: "192.168.30.2"
+    c.vm.provider "virtualbox" do |v|
+      v.customize ["createhd", "--filename", "drbd1.vdi", "--size", 5 * 1024] # 5GB
+      v.customize ["storageattach", :id, "--storagectl", "IDE", "--port", 1, "--device", 0, "--type", "hdd", "--medium", "drbd1.vdi"]
+    end
+  end
+  config.vm.define "node2" do |c|
+    c.vm.hostname = "node2"
+    c.vm.provision "shell", inline: $provision
+    c.vm.network "private_network", ip: "192.168.30.3"
+    c.vm.provider "virtualbox" do |v|
+      v.customize ["createhd", "--filename", "drbd2.vdi", "--size", 5 * 1024] # 5GB
+      v.customize ["storageattach", :id, "--storagectl", "IDE", "--port", 1, "--device", 0, "--type", "hdd", "--medium", "drbd2.vdi"]
+    end
+  end
+end

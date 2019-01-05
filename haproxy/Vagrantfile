@@ -1,0 +1,63 @@
+# vi: ft=ruby
+
+$provision_proxy = <<-SCRIPT
+yum -y install haproxy socat tcpdump
+# http://cbonte.github.io/haproxy-dconv/1.8/configuration.html#2.5
+cat << EOF > /etc/haproxy/haproxy.cfg
+global
+    log 127.0.0.1 local2
+    chroot /var/lib/haproxy
+    pidfile /var/run/haproxy.pid
+    user haproxy
+    group haproxy
+    daemon
+    stats socket /var/lib/haproxy/stats
+
+defaults
+    mode http
+    log global
+    option httplog
+
+frontend proxy
+    bind *:80
+    default_backend app
+
+backend app
+    option redispatch
+    retries 3
+    option httpchk GET /
+    server web1 192.168.31.3:80 check
+    server web2 192.168.31.4:80 check
+EOF
+systemctl enable haproxy
+systemctl start haproxy
+SCRIPT
+
+$provision_web = <<-SCRIPT
+yum -y install httpd tcpdump
+cat << EOF > /var/www/html/index.html
+<h1>Hello World</h1>
+EOF
+systemctl enable httpd
+systemctl start httpd
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.define "proxy" do |c|
+    c.vm.hostname = "proxy"
+    c.vm.provision "shell", inline: $provision_proxy
+    c.vm.network "private_network", ip: "192.168.30.2"
+    c.vm.network "private_network", ip: "192.168.31.2", virtualbox__intnet: true
+  end
+  config.vm.define "web1" do |c|
+    c.vm.hostname = "web1"
+    c.vm.provision "shell", inline: $provision_web
+    c.vm.network "private_network", ip: "192.168.31.3", virtualbox__intnet: true
+  end
+  config.vm.define "web2" do |c|
+    c.vm.hostname = "web2"
+    c.vm.provision "shell", inline: $provision_web
+    c.vm.network "private_network", ip: "192.168.31.4", virtualbox__intnet: true
+  end
+end

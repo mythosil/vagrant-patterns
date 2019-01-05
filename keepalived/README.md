@@ -1,4 +1,4 @@
-vagrant-keepalived-test
+keepalived
 ===
 
 Start the machines.

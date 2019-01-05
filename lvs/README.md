@@ -1,4 +1,4 @@
-vagrant-lvs-test
+lvs
 ===
 
 Network diagram ( *NAT mode* )

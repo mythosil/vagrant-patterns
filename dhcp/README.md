@@ -1,4 +1,4 @@
-vagrant-dhcp-test
+dhcp
 ===
 
 Vagrant project to look at DHCP([RFC2131](https://www.ietf.org/rfc/rfc2131.txt))'s behaviour.

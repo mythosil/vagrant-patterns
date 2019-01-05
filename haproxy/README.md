@@ -1,4 +1,4 @@
-vagrant-haproxy-test
+haproxy
 ===
 
 Network diagram.

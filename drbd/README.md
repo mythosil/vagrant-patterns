@@ -1,4 +1,4 @@
-vagrant-drbd-test
+drbd
 ===
 
 *DRBD 8.4*

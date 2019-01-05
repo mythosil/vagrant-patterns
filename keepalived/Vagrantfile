@@ -1,0 +1,50 @@
+# vi: ft=ruby
+
+$provision_active = <<-SCRIPT
+yum -y install keepalived
+systemctl enable keepalived
+cat << EOF > /etc/keepalived/keepalived.conf
+vrrp_instance V1 {
+    state BACKUP
+    interface eth1
+    virtual_router_id 3
+    priority 255
+    advert_int 5
+    virtual_ipaddress {
+        192.168.30.101
+    }
+}
+EOF
+systemctl start keepalived
+SCRIPT
+
+$provision_standby = <<-SCRIPT
+yum -y install keepalived
+systemctl enable keepalived
+cat << EOF > /etc/keepalived/keepalived.conf
+vrrp_instance V1 {
+    state BACKUP
+    interface eth1
+    virtual_router_id 3
+    priority 100
+    advert_int 5
+    virtual_ipaddress {
+        192.168.30.101
+    }
+}
+EOF
+systemctl start keepalived
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.define "active" do |c|
+    c.vm.box = "centos/7"
+    c.vm.provision "shell", inline: $provision_active
+    c.vm.network "private_network", ip: "192.168.30.2"
+  end
+  config.vm.define "standby" do |c|
+    c.vm.box = "centos/7"
+    c.vm.provision "shell", inline: $provision_standby
+    c.vm.network "private_network", ip: "192.168.30.3"
+  end
+end

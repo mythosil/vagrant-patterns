@@ -1,0 +1,22 @@
+# vi: ft=ruby
+
+$provision = <<-SCRIPT
+yum -y install dnsmasq tcpdump
+sed -i 's/^#log-queries/log-queries/' /etc/dnsmasq.conf
+sed -i 's!^#conf-dir=/etc/dnsmasq.d$!conf-dir=/etc/dnsmasq.d!' /etc/dnsmasq.conf
+cat << EOF > /etc/dnsmasq.d/example.conf
+address=/mythosil.com/192.168.123.123
+EOF
+systemctl enable dnsmasq
+systemctl start dnsmasq
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+
+  config.vm.define "dns" do |c|
+    c.vm.hostname = "dns"
+    c.vm.provision "shell", inline: $provision
+    c.vm.network "private_network", ip: "192.168.30.2"
+  end
+end

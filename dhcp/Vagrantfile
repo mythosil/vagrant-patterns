@@ -1,0 +1,31 @@
+# vi: ft=ruby
+
+$provision_dhcpserver = <<-SCRIPT
+yum -y install dhcp tcpdump
+systemctl enable dhcpd
+cat << EOF > /etc/dhcp/dhcpd.conf
+ddns-update-style none;
+default-lease-time 28800;
+max-lease-time 86400;
+subnet 192.168.31.0 netmask 255.255.255.0 {
+    authoritative;
+    range 192.168.31.101 192.168.31.200;
+    option subnet-mask 255.255.255.0;
+}
+EOF
+systemctl start dhcpd
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.define "server" do |c|
+    c.vm.box = "centos/7"
+    c.vm.provision "shell", inline: $provision_dhcpserver
+    c.vm.network "private_network", ip: "192.168.30.1"
+    c.vm.network "private_network", ip: "192.168.31.1", virtualbox__intnet: true
+  end
+  config.vm.define "client" do |c|
+    c.vm.box = "centos/7"
+    c.vm.network "private_network", ip: "192.168.30.2"
+    c.vm.network "private_network", type: "dhcp", ip: "192.168.31.2", virtualbox__intnet: true
+  end
+end

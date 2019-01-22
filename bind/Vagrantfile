@@ -1,0 +1,28 @@
+# vi: ft=ruby
+
+$provision = <<-SCRIPT
+yum install -y bind bind-chroot
+
+mv /home/vagrant/named.conf /etc/named.conf
+chown root:named /etc/named.conf
+chmod 640 /etc/named.conf
+mv /home/vagrant/mythosil.local.zone /var/named/mythosil.local.zone
+chown root:named /var/named/mythosil.local.zone
+chmod 640 /var/named/mythosil.local.zone
+
+setenforce 0
+systemctl enable named-chroot
+systemctl start named-chroot
+SCRIPT
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+
+  config.vm.define "dns" do |c|
+    c.vm.hostname = "dns"
+    c.vm.network "private_network", ip: "192.168.30.2"
+    c.vm.provision "file", source: "./named.conf", destination: "~/named.conf"
+    c.vm.provision "file", source: "./mythosil.local.zone", destination: "~/mythosil.local.zone"
+    c.vm.provision "shell", inline: $provision
+  end
+end

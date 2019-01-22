@@ -1,0 +1,11 @@
+$TTL 1D
+@	IN SOA	ns.mythosil.local. root.mythosil.local. (
+					0	; serial
+					1D	; refresh
+					1H	; retry
+					1W	; expire
+					3H )	; minimum
+	IN NS	ns.mythosil.local.
+@	IN A	192.168.30.2
+ns	IN A	192.168.30.2
+web	IN A	192.168.30.2
